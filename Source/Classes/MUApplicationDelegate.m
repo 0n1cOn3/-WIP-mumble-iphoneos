@@ -293,7 +293,7 @@
 }
 
 - (void) applicationDidBecomeActive:(UIApplication *)application {
-    if (![[AVAudioSession sharedInstance] isOtherAudioPlaying]) {
+    if (!_connectionActive && ![[AVAudioSession sharedInstance] isOtherAudioPlaying]) {
         NSLog(@"MumbleApplicationDelegate: Reactivating audio session after foregrounding.");
         [self activateAudioSession];
 
