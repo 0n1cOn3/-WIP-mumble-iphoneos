@@ -141,6 +141,7 @@ static id MUSharedAudioReplacement(id self, SEL _cmd) {
     Method sharedAudioMethod = class_getClassMethod(audioClass, @selector(sharedAudio));
     if (sharedAudioMethod != NULL && OriginalSharedAudioImp != NULL) {
         method_setImplementation(sharedAudioMethod, OriginalSharedAudioImp);
+        OriginalSharedAudioImp = NULL;
     }
 }
 
