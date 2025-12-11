@@ -86,7 +86,10 @@ final class MUAudioSessionManager: NSObject {
     ///
     /// This method should be called during application initialization
     /// and when returning from background.
-    func configureSession() {
+    ///
+    /// - Parameter activate: Whether to activate the audio session after configuration.
+    ///                       Defaults to `true` for backward compatibility.
+    func configureSession(activate: Bool = true) {
         do {
             // Explicitly set all required options from scratch for predictable behavior
             var options: AVAudioSession.CategoryOptions = [.allowBluetooth]
@@ -97,7 +100,9 @@ final class MUAudioSessionManager: NSObject {
                 options.insert(.defaultToSpeaker)
             }
             applyCategoryOptions(options)
-            try session.setActive(true, options: [])
+            if activate {
+                try session.setActive(true, options: [])
+            }
         } catch {
             NSLog("MUAudioSessionManager: Failed to configure audio session: %@", error.localizedDescription)
         }
