@@ -167,7 +167,7 @@ final class MUAudioSessionManager: NSObject {
             packetDuration = Double(framesPerPacket) * (frameDurationMs / 1000.0)
             
             // Determine sample rate based on bitrate
-            // Lower bitrates (< 24kHz) use 16kHz sampling, higher bitrates use 48kHz
+            // Lower bitrates (< 24 kbit/s) use 16kHz sampling, higher bitrates use 48kHz
             sampleRate = bitRate < sampleRateThreshold ? 16000 : 48000
         }
 
