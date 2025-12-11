@@ -125,7 +125,7 @@ static id MUSharedAudioReplacement(id self, SEL _cmd) {
     Class audioClass = objc_getClass("MKAudio");
     Method sharedAudioMethod = class_getClassMethod(audioClass, @selector(sharedAudio));
     if (sharedAudioMethod == NULL) {
-        class_addMethod(audioClass, @selector(sharedAudio), (IMP)MUSharedAudioReplacement, "@@:");
+        class_addMethod(object_getClass(audioClass), @selector(sharedAudio), (IMP)MUSharedAudioReplacement, "@@:");
         sharedAudioMethod = class_getClassMethod(audioClass, @selector(sharedAudio));
     }
     if (OriginalSharedAudioImp == NULL && sharedAudioMethod != NULL) {
