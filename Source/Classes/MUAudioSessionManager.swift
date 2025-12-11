@@ -24,7 +24,7 @@ final class MUAudioSessionManager: NSObject {
     private(set) var vadUpperThreshold: Float = 0.6
     private(set) var recorderSettings: [String: Any] = [:]
 
-    private override init() {
+    private init() {
     }
 
     func configureSession() {
