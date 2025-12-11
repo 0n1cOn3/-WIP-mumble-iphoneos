@@ -18,7 +18,7 @@ import AVFoundation
 
 /// Defines preset quality levels for audio codec configuration.
 ///
-/// Each preset configures sample rate, bit rate, and buffer duration
+/// Each preset configures sample rate, bit rate, and I/O buffer duration
 /// to balance audio quality against bandwidth and processing requirements.
 @objc public enum MUAudioCodecQualityPreset: Int {
     /// Low quality preset - 16 kHz sample rate, 16 kbps bit rate, suitable for low bandwidth
@@ -205,9 +205,9 @@ final class MUAudioSessionManager: NSObject {
     /// - Returns: The normalized string value of the applied preset
     ///
     /// Each preset configures different audio parameters:
-    /// - Low: 16 kHz sample rate, 16 kbps bit rate, 60ms buffer duration
-    /// - Balanced: 48 kHz sample rate, 40 kbps bit rate, 20ms buffer duration (default)
-    /// - High: 48 kHz sample rate, 72 kbps bit rate, 10ms buffer duration
+    /// - Low: 16 kHz sample rate, 16 kbps bit rate, 60ms I/O buffer
+    /// - Balanced: 48 kHz sample rate, 40 kbps bit rate, 20ms I/O buffer (default)
+    /// - High: 48 kHz sample rate, 72 kbps bit rate, 10ms I/O buffer
     ///
     /// The selected preset is persisted to UserDefaults under the key "AudioQualityKind".
     @discardableResult
