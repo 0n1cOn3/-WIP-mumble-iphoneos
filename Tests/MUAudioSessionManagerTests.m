@@ -97,6 +97,27 @@ static NSString * const kApplyPlaybackPreferencesSelector = @"applyPlaybackPrefe
     [super tearDown];
 }
 
+// MARK: - Helper Methods
+
+- (void)bindMockAudioToSessionManager {
+    [self bindMockAudioToSessionManager];
+}
+
+- (void)triggerRouteChangeWithReason:(AVAudioSessionRouteChangeReason)reason {
+    SEL handleSelector = NSSelectorFromString(kHandleRouteChangeSelector);
+    if ([self.sessionManager respondsToSelector:handleSelector]) {
+        NSMethodSignature *signature = [self.sessionManager methodSignatureForSelector:handleSelector];
+        NSInvocation *invocation = [NSInvocation invocationWithMethodSignature:signature];
+        [invocation setSelector:handleSelector];
+        [invocation setTarget:self.sessionManager];
+        
+        NSUInteger reasonValue = (NSUInteger)reason;
+        [invocation setArgument:&reasonValue atIndex:2];
+        [invocation setArgument:&_mockDefaults atIndex:3];
+        [invocation invoke];
+    }
+}
+
 // MARK: - bind(to:defaults:) Tests
 
 - (void)testBindAppliesPlaybackPreferences {
@@ -109,13 +130,7 @@ static NSString * const kApplyPlaybackPreferencesSelector = @"applyPlaybackPrefe
     [self.mockDefaults setBool:YES forKey:@"AudioSpeakerPhoneMode"];
     
     // When: Binding to MKAudio
-    SEL bindSelector = NSSelectorFromString(kBindSelector);
-    if ([self.sessionManager respondsToSelector:bindSelector]) {
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Warc-performSelector-leaks"
-        [self.sessionManager performSelector:bindSelector withObject:self.mockAudio withObject:self.mockDefaults];
-#pragma clang diagnostic pop
-    }
+    [self bindMockAudioToSessionManager];
     
     // Then: Should complete without error
     XCTAssertNotNil(self.sessionManager);
@@ -130,13 +145,7 @@ static NSString * const kApplyPlaybackPreferencesSelector = @"applyPlaybackPrefe
     // Given: No speaker mode preference set (defaults to false)
     
     // When: Binding to MKAudio
-    SEL bindSelector = NSSelectorFromString(kBindSelector);
-    if ([self.sessionManager respondsToSelector:bindSelector]) {
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Warc-performSelector-leaks"
-        [self.sessionManager performSelector:bindSelector withObject:self.mockAudio withObject:self.mockDefaults];
-#pragma clang diagnostic pop
-    }
+    [self bindMockAudioToSessionManager];
     
     // Then: Should complete without error
     XCTAssertNotNil(self.sessionManager);
@@ -152,13 +161,7 @@ static NSString * const kApplyPlaybackPreferencesSelector = @"applyPlaybackPrefe
     
     // Given: Audio is bound and running
     self.mockAudio.mockIsRunning = YES;
-    SEL bindSelector = NSSelectorFromString(kBindSelector);
-    if ([self.sessionManager respondsToSelector:bindSelector]) {
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Warc-performSelector-leaks"
-        [self.sessionManager performSelector:bindSelector withObject:self.mockAudio withObject:self.mockDefaults];
-#pragma clang diagnostic pop
-    }
+    [self bindMockAudioToSessionManager];
     
     // When: Refreshing the playback chain
     SEL refreshSelector = NSSelectorFromString(kRefreshSelector);
@@ -181,13 +184,7 @@ static NSString * const kApplyPlaybackPreferencesSelector = @"applyPlaybackPrefe
     
     // Given: Audio is bound but not running
     self.mockAudio.mockIsRunning = NO;
-    SEL bindSelector = NSSelectorFromString(kBindSelector);
-    if ([self.sessionManager respondsToSelector:bindSelector]) {
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Warc-performSelector-leaks"
-        [self.sessionManager performSelector:bindSelector withObject:self.mockAudio withObject:self.mockDefaults];
-#pragma clang diagnostic pop
-    }
+    [self bindMockAudioToSessionManager];
     
     // Reset call counts after bind
     [self.mockAudio resetCallCounts];
@@ -215,29 +212,12 @@ static NSString * const kApplyPlaybackPreferencesSelector = @"applyPlaybackPrefe
     
     // Given: Audio is bound and running
     self.mockAudio.mockIsRunning = YES;
-    SEL bindSelector = NSSelectorFromString(kBindSelector);
-    if ([self.sessionManager respondsToSelector:bindSelector]) {
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Warc-performSelector-leaks"
-        [self.sessionManager performSelector:bindSelector withObject:self.mockAudio withObject:self.mockDefaults];
-#pragma clang diagnostic pop
-    }
+    [self bindMockAudioToSessionManager];
     [self.mockAudio resetCallCounts];
     
     // When: Route changes due to new device
     AVAudioSessionRouteChangeReason reason = AVAudioSessionRouteChangeReasonNewDeviceAvailable;
-    SEL handleSelector = NSSelectorFromString(kHandleRouteChangeSelector);
-    if ([self.sessionManager respondsToSelector:handleSelector]) {
-        NSMethodSignature *signature = [self.sessionManager methodSignatureForSelector:handleSelector];
-        NSInvocation *invocation = [NSInvocation invocationWithMethodSignature:signature];
-        [invocation setSelector:handleSelector];
-        [invocation setTarget:self.sessionManager];
-        
-        NSUInteger reasonValue = (NSUInteger)reason;
-        [invocation setArgument:&reasonValue atIndex:2];
-        [invocation setArgument:&_mockDefaults atIndex:3];
-        [invocation invoke];
-    }
+    [self triggerRouteChangeWithReason:reason];
     
     // Then: Audio should be restarted
     XCTAssertEqual(self.mockAudio.restartCallCount, 1);
@@ -251,29 +231,12 @@ static NSString * const kApplyPlaybackPreferencesSelector = @"applyPlaybackPrefe
     
     // Given: Audio is bound and running
     self.mockAudio.mockIsRunning = YES;
-    SEL bindSelector = NSSelectorFromString(kBindSelector);
-    if ([self.sessionManager respondsToSelector:bindSelector]) {
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Warc-performSelector-leaks"
-        [self.sessionManager performSelector:bindSelector withObject:self.mockAudio withObject:self.mockDefaults];
-#pragma clang diagnostic pop
-    }
+    [self bindMockAudioToSessionManager];
     [self.mockAudio resetCallCounts];
     
     // When: Route changes due to device removal
     AVAudioSessionRouteChangeReason reason = AVAudioSessionRouteChangeReasonOldDeviceUnavailable;
-    SEL handleSelector = NSSelectorFromString(kHandleRouteChangeSelector);
-    if ([self.sessionManager respondsToSelector:handleSelector]) {
-        NSMethodSignature *signature = [self.sessionManager methodSignatureForSelector:handleSelector];
-        NSInvocation *invocation = [NSInvocation invocationWithMethodSignature:signature];
-        [invocation setSelector:handleSelector];
-        [invocation setTarget:self.sessionManager];
-        
-        NSUInteger reasonValue = (NSUInteger)reason;
-        [invocation setArgument:&reasonValue atIndex:2];
-        [invocation setArgument:&_mockDefaults atIndex:3];
-        [invocation invoke];
-    }
+    [self triggerRouteChangeWithReason:reason];
     
     // Then: Audio should be restarted
     XCTAssertEqual(self.mockAudio.restartCallCount, 1);
@@ -287,29 +250,12 @@ static NSString * const kApplyPlaybackPreferencesSelector = @"applyPlaybackPrefe
     
     // Given: Audio is bound and running
     self.mockAudio.mockIsRunning = YES;
-    SEL bindSelector = NSSelectorFromString(kBindSelector);
-    if ([self.sessionManager respondsToSelector:bindSelector]) {
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Warc-performSelector-leaks"
-        [self.sessionManager performSelector:bindSelector withObject:self.mockAudio withObject:self.mockDefaults];
-#pragma clang diagnostic pop
-    }
+    [self bindMockAudioToSessionManager];
     [self.mockAudio resetCallCounts];
     
     // When: Route changes due to category change
     AVAudioSessionRouteChangeReason reason = AVAudioSessionRouteChangeReasonCategoryChange;
-    SEL handleSelector = NSSelectorFromString(kHandleRouteChangeSelector);
-    if ([self.sessionManager respondsToSelector:handleSelector]) {
-        NSMethodSignature *signature = [self.sessionManager methodSignatureForSelector:handleSelector];
-        NSInvocation *invocation = [NSInvocation invocationWithMethodSignature:signature];
-        [invocation setSelector:handleSelector];
-        [invocation setTarget:self.sessionManager];
-        
-        NSUInteger reasonValue = (NSUInteger)reason;
-        [invocation setArgument:&reasonValue atIndex:2];
-        [invocation setArgument:&_mockDefaults atIndex:3];
-        [invocation invoke];
-    }
+    [self triggerRouteChangeWithReason:reason];
     
     // Then: Audio should be restarted
     XCTAssertEqual(self.mockAudio.restartCallCount, 1);
@@ -323,29 +269,12 @@ static NSString * const kApplyPlaybackPreferencesSelector = @"applyPlaybackPrefe
     
     // Given: Audio is bound and running
     self.mockAudio.mockIsRunning = YES;
-    SEL bindSelector = NSSelectorFromString(kBindSelector);
-    if ([self.sessionManager respondsToSelector:bindSelector]) {
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Warc-performSelector-leaks"
-        [self.sessionManager performSelector:bindSelector withObject:self.mockAudio withObject:self.mockDefaults];
-#pragma clang diagnostic pop
-    }
+    [self bindMockAudioToSessionManager];
     [self.mockAudio resetCallCounts];
     
     // When: Route changes due to override
     AVAudioSessionRouteChangeReason reason = AVAudioSessionRouteChangeReasonOverride;
-    SEL handleSelector = NSSelectorFromString(kHandleRouteChangeSelector);
-    if ([self.sessionManager respondsToSelector:handleSelector]) {
-        NSMethodSignature *signature = [self.sessionManager methodSignatureForSelector:handleSelector];
-        NSInvocation *invocation = [NSInvocation invocationWithMethodSignature:signature];
-        [invocation setSelector:handleSelector];
-        [invocation setTarget:self.sessionManager];
-        
-        NSUInteger reasonValue = (NSUInteger)reason;
-        [invocation setArgument:&reasonValue atIndex:2];
-        [invocation setArgument:&_mockDefaults atIndex:3];
-        [invocation invoke];
-    }
+    [self triggerRouteChangeWithReason:reason];
     
     // Then: Audio should be restarted
     XCTAssertEqual(self.mockAudio.restartCallCount, 1);
@@ -359,29 +288,12 @@ static NSString * const kApplyPlaybackPreferencesSelector = @"applyPlaybackPrefe
     
     // Given: Audio is bound and running
     self.mockAudio.mockIsRunning = YES;
-    SEL bindSelector = NSSelectorFromString(kBindSelector);
-    if ([self.sessionManager respondsToSelector:bindSelector]) {
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Warc-performSelector-leaks"
-        [self.sessionManager performSelector:bindSelector withObject:self.mockAudio withObject:self.mockDefaults];
-#pragma clang diagnostic pop
-    }
+    [self bindMockAudioToSessionManager];
     [self.mockAudio resetCallCounts];
     
     // When: Route changes due to wake from sleep
     AVAudioSessionRouteChangeReason reason = AVAudioSessionRouteChangeReasonWakeFromSleep;
-    SEL handleSelector = NSSelectorFromString(kHandleRouteChangeSelector);
-    if ([self.sessionManager respondsToSelector:handleSelector]) {
-        NSMethodSignature *signature = [self.sessionManager methodSignatureForSelector:handleSelector];
-        NSInvocation *invocation = [NSInvocation invocationWithMethodSignature:signature];
-        [invocation setSelector:handleSelector];
-        [invocation setTarget:self.sessionManager];
-        
-        NSUInteger reasonValue = (NSUInteger)reason;
-        [invocation setArgument:&reasonValue atIndex:2];
-        [invocation setArgument:&_mockDefaults atIndex:3];
-        [invocation invoke];
-    }
+    [self triggerRouteChangeWithReason:reason];
     
     // Then: Audio should be restarted
     XCTAssertEqual(self.mockAudio.restartCallCount, 1);
@@ -395,29 +307,12 @@ static NSString * const kApplyPlaybackPreferencesSelector = @"applyPlaybackPrefe
     
     // Given: Audio is bound and running
     self.mockAudio.mockIsRunning = YES;
-    SEL bindSelector = NSSelectorFromString(kBindSelector);
-    if ([self.sessionManager respondsToSelector:bindSelector]) {
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Warc-performSelector-leaks"
-        [self.sessionManager performSelector:bindSelector withObject:self.mockAudio withObject:self.mockDefaults];
-#pragma clang diagnostic pop
-    }
+    [self bindMockAudioToSessionManager];
     [self.mockAudio resetCallCounts];
     
     // When: Route changes for an unknown reason
     AVAudioSessionRouteChangeReason reason = AVAudioSessionRouteChangeReasonUnknown;
-    SEL handleSelector = NSSelectorFromString(kHandleRouteChangeSelector);
-    if ([self.sessionManager respondsToSelector:handleSelector]) {
-        NSMethodSignature *signature = [self.sessionManager methodSignatureForSelector:handleSelector];
-        NSInvocation *invocation = [NSInvocation invocationWithMethodSignature:signature];
-        [invocation setSelector:handleSelector];
-        [invocation setTarget:self.sessionManager];
-        
-        NSUInteger reasonValue = (NSUInteger)reason;
-        [invocation setArgument:&reasonValue atIndex:2];
-        [invocation setArgument:&_mockDefaults atIndex:3];
-        [invocation invoke];
-    }
+    [self triggerRouteChangeWithReason:reason];
     
     // Then: Audio should not be restarted
     XCTAssertEqual(self.mockAudio.restartCallCount, 0);
@@ -505,13 +400,7 @@ static NSString * const kApplyPlaybackPreferencesSelector = @"applyPlaybackPrefe
     self.mockAudio.mockIsRunning = NO;
     
     // When: Binding and then refreshing
-    SEL bindSelector = NSSelectorFromString(kBindSelector);
-    if ([self.sessionManager respondsToSelector:bindSelector]) {
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Warc-performSelector-leaks"
-        [self.sessionManager performSelector:bindSelector withObject:self.mockAudio withObject:self.mockDefaults];
-#pragma clang diagnostic pop
-    }
+    [self bindMockAudioToSessionManager];
     [self.mockAudio resetCallCounts];  // Reset after bind
     
     SEL refreshSelector = NSSelectorFromString(kRefreshSelector);
@@ -535,29 +424,12 @@ static NSString * const kApplyPlaybackPreferencesSelector = @"applyPlaybackPrefe
     // Given: Audio is bound with speaker mode enabled
     [self.mockDefaults setBool:YES forKey:@"AudioSpeakerPhoneMode"];
     self.mockAudio.mockIsRunning = YES;
-    SEL bindSelector = NSSelectorFromString(kBindSelector);
-    if ([self.sessionManager respondsToSelector:bindSelector]) {
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Warc-performSelector-leaks"
-        [self.sessionManager performSelector:bindSelector withObject:self.mockAudio withObject:self.mockDefaults];
-#pragma clang diagnostic pop
-    }
+    [self bindMockAudioToSessionManager];
     
     // When: Route changes and preferences are updated
     [self.mockDefaults setBool:NO forKey:@"AudioSpeakerPhoneMode"];
     AVAudioSessionRouteChangeReason reason = AVAudioSessionRouteChangeReasonNewDeviceAvailable;
-    SEL handleSelector = NSSelectorFromString(kHandleRouteChangeSelector);
-    if ([self.sessionManager respondsToSelector:handleSelector]) {
-        NSMethodSignature *signature = [self.sessionManager methodSignatureForSelector:handleSelector];
-        NSInvocation *invocation = [NSInvocation invocationWithMethodSignature:signature];
-        [invocation setSelector:handleSelector];
-        [invocation setTarget:self.sessionManager];
-        
-        NSUInteger reasonValue = (NSUInteger)reason;
-        [invocation setArgument:&reasonValue atIndex:2];
-        [invocation setArgument:&_mockDefaults atIndex:3];
-        [invocation invoke];
-    }
+    [self triggerRouteChangeWithReason:reason];
     
     // Then: Should apply new preferences and restart audio
     XCTAssertEqual(self.mockAudio.restartCallCount, 1);
