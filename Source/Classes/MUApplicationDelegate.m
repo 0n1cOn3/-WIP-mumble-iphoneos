@@ -305,6 +305,8 @@
     }
 }
 
+// Register for AVAudioSession notifications.
+// Observes interruption and route change notifications to handle system audio events.
 - (void) registerForAudioSessionNotifications {
     NSNotificationCenter *center = [NSNotificationCenter defaultCenter];
     AVAudioSession *session = [AVAudioSession sharedInstance];
@@ -320,6 +322,19 @@
                  object:session];
 }
 
+// Configure the AVAudioSession based on user preferences.
+// @param defaults The NSUserDefaults instance containing audio preferences.
+//
+// Configures the audio session with appropriate category, mode, and options based on:
+// - AudioSpeakerPhoneMode: Enables default to speaker if set
+// - AudioTransmitMethod: Selects mode (VoiceChat for vad, SpokenAudio/Default for continuous, Default for ptt)
+// - AudioPreprocessor: Uses Measurement mode when disabled to bypass audio processing
+// - AudioQualityKind: Sets sample rate (16kHz for low, 48kHz otherwise)
+// - AudioQualityFrames: Determines IO buffer duration based on frames per packet
+// - AudioMicBoost: Sets input gain if the device supports it
+//
+// The method uses PlayAndRecord category with Bluetooth support and ducking of other audio.
+// For iOS 10+, it also enables BluetoothA2DP support.
 - (void) configureAudioSessionWithDefaults:(NSUserDefaults *)defaults {
     AVAudioSession *session = [AVAudioSession sharedInstance];
     NSError *error = nil;
@@ -400,6 +415,9 @@
     }
 }
 
+// Activate the audio session.
+// Activates the AVAudioSession with the NotifyOthersOnDeactivation option to allow
+// other apps to resume audio playback when this session is later deactivated.
 - (void) activateAudioSession {
     AVAudioSession *session = [AVAudioSession sharedInstance];
     NSError *error = nil;
@@ -409,6 +427,9 @@
     }
 }
 
+// Deactivate the audio session.
+// Deactivates the AVAudioSession with the NotifyOthersOnDeactivation option to notify
+// other apps that they can resume their audio sessions.
 - (void) deactivateAudioSession {
     AVAudioSession *session = [AVAudioSession sharedInstance];
     NSError *error = nil;
@@ -417,6 +438,12 @@
     }
 }
 
+// Handle audio session interruption notifications.
+// @param notification The AVAudioSessionInterruptionNotification containing interruption details.
+//
+// Responds to interruptions by:
+// - Deactivating the audio session when an interruption begins
+// - Reactivating the audio session when the interruption ends (if ShouldResume option is set)
 - (void) handleAudioSessionInterruption:(NSNotification *)notification {
     NSDictionary *userInfo = notification.userInfo;
     AVAudioSessionInterruptionType type = [userInfo[AVAudioSessionInterruptionTypeKey] integerValue];
@@ -432,6 +459,11 @@
     }
 }
 
+// Handle audio route change notifications.
+// @param notification The AVAudioSessionRouteChangeNotification containing route change details.
+//
+// Logs the reason for audio route changes (e.g., headphones connected/disconnected,
+// Bluetooth device connected, etc.) for debugging purposes.
 - (void) handleAudioSessionRouteChange:(NSNotification *)notification {
     NSDictionary *userInfo = notification.userInfo;
     AVAudioSessionRouteChangeReason reason = [userInfo[AVAudioSessionRouteChangeReasonKey] unsignedIntegerValue];
