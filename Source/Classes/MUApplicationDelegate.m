@@ -391,7 +391,7 @@
 
     float vadMax = [defaults floatForKey:@"AudioVADAbove"];
     float micBoost = [defaults floatForKey:@"AudioMicBoost"];
-    float requestedGain = fmaxf(0.0f, fminf(1.0f, vadMax * micBoost));
+    float requestedGain = fmaxf(0.0f, fminf(1.0f, micBoost));
     if ([session isInputGainSettable]) {
         NSError *inputGainError = nil;
         if (![session setInputGain:requestedGain error:&inputGainError]) {
