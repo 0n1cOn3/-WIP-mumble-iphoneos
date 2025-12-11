@@ -246,7 +246,10 @@
     [audio updateAudioSettings:&settings];
     [audio restart];
 
-    [self activateAudioSession];
+    // Only activate the audio session if it is not already active
+    if (![[AVAudioSession sharedInstance] isActive]) {
+        [self activateAudioSession];
+    }
 }
 
 // Reload application preferences...
