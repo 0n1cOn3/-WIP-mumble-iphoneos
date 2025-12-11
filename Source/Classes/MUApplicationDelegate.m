@@ -364,7 +364,7 @@
 }
 }
 - (void) applicationWillResignActive:(UIApplication *)application {
-    if (!_connectionActive) {
+    if (!_audioWasRunningBeforeInterruption) {
 
         NSLog(@"MumbleApplicationDelegate: Not connected to a server. Stopping MKAudio.");
         [[MKAudio sharedAudio] stop];
