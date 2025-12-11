@@ -23,7 +23,7 @@
     UIWindow                  *_window;
     UINavigationController    *_navigationController;
     MUPublicServerListFetcher *_publistFetcher;
-    BOOL                      _connectionActive;
+    BOOL                      _audioWasRunningBeforeInterruption;
 }
 - (void) setupAudio;
 - (void) registerForAudioSessionNotifications;
@@ -31,14 +31,18 @@
 - (void) activateAudioSession;
 - (void) deactivateAudioSession;
 - (void) forceKeyboardLoad;
+- (void) registerForAppLifecycleNotifications;
+- (void) activateAudioSessionIfNeeded;
+- (void) handleApplicationActivation:(NSNotification *)notification;
+- (void) handleAudioInterruption:(NSNotification *)notification;
+- (void) handleAudioRouteChange:(NSNotification *)notification;
 @end
 
 @implementation MUApplicationDelegate
 
 - (BOOL) application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions {
-    [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(connectionOpened:) name:MUConnectionOpenedNotification object:nil];
-    [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(connectionClosed:) name:MUConnectionClosedNotification object:nil];
-    
+    [self registerForAppLifecycleNotifications];
+
     // Reset application badge, in case something brought it into an inconsistent state.
     [[UIApplication sharedApplication] setApplicationIconBadgeNumber:0];
     
@@ -95,7 +99,7 @@
     if (@available(iOS 7, *)) {
         [[UITextField appearance] setKeyboardAppearance:UIKeyboardAppearanceDark];
     }
-    
+
     _window = [[UIWindow alloc] initWithFrame:[[UIScreen mainScreen] bounds]];
     if (@available(iOS 7, *)) {
     // XXX: don't do it system-wide just yet
@@ -280,14 +284,79 @@
     }
 }
 
-- (void) connectionOpened:(NSNotification *)notification {
-    _connectionActive = YES;
+- (void) registerForAppLifecycleNotifications {
+    NSNotificationCenter *notificationCenter = [NSNotificationCenter defaultCenter];
+
+    [notificationCenter addObserver:self selector:@selector(handleApplicationActivation:) name:UIApplicationWillEnterForegroundNotification object:nil];
+    [notificationCenter addObserver:self selector:@selector(handleApplicationActivation:) name:UIApplicationDidBecomeActiveNotification object:nil];
+
+    if (@available(iOS 13.0, *)) {
+        [notificationCenter addObserver:self selector:@selector(handleApplicationActivation:) name:UISceneWillEnterForegroundNotification object:nil];
+        [notificationCenter addObserver:self selector:@selector(handleApplicationActivation:) name:UISceneDidActivateNotification object:nil];
+    }
+
+    [notificationCenter addObserver:self selector:@selector(handleAudioInterruption:) name:AVAudioSessionInterruptionNotification object:nil];
+    [notificationCenter addObserver:self selector:@selector(handleAudioRouteChange:) name:AVAudioSessionRouteChangeNotification object:nil];
 }
 
-- (void) connectionClosed:(NSNotification *)notification {
-    _connectionActive = NO;
+- (void) activateAudioSessionIfNeeded {
+    NSError *activationError = nil;
+    [[AVAudioSession sharedInstance] setActive:YES error:&activationError];
+    if (activationError) {
+        NSLog(@"MUApplicationDelegate: Failed to activate AVAudioSession: %@", activationError);
+    }
 }
 
+- (void) handleApplicationActivation:(NSNotification *)notification {
+    [self activateAudioSessionIfNeeded];
+
+    MKAudio *audio = [MKAudio sharedAudio];
+    if (![audio isRunning]) {
+        [audio start];
+    }
+}
+
+- (void) handleAudioInterruption:(NSNotification *)notification {
+    NSDictionary *userInfo = [notification userInfo];
+    AVAudioSessionInterruptionType type = [[userInfo objectForKey:AVAudioSessionInterruptionTypeKey] integerValue];
+
+    if (type == AVAudioSessionInterruptionTypeBegan) {
+        _audioWasRunningBeforeInterruption = [[MKAudio sharedAudio] isRunning];
+        if (_audioWasRunningBeforeInterruption) {
+            [[MKAudio sharedAudio] stop];
+        }
+    } else if (type == AVAudioSessionInterruptionTypeEnded) {
+        AVAudioSessionInterruptionOptions options = [[userInfo objectForKey:AVAudioSessionInterruptionOptionKey] integerValue];
+        if (options & AVAudioSessionInterruptionOptionShouldResume) {
+            [self activateAudioSessionIfNeeded];
+            if (_audioWasRunningBeforeInterruption) {
+                [[MKAudio sharedAudio] start];
+            }
+        }
+        _audioWasRunningBeforeInterruption = NO;
+    }
+}
+
+- (void) handleAudioRouteChange:(NSNotification *)notification {
+    NSDictionary *userInfo = [notification userInfo];
+    AVAudioSessionRouteChangeReason reason = [[userInfo objectForKey:AVAudioSessionRouteChangeReasonKey] integerValue];
+
+    switch (reason) {
+        case AVAudioSessionRouteChangeReasonNewDeviceAvailable:
+        case AVAudioSessionRouteChangeReasonOldDeviceUnavailable:
+        case AVAudioSessionRouteChangeReasonCategoryChange:
+        case AVAudioSessionRouteChangeReasonOverride:
+        case AVAudioSessionRouteChangeReasonWakeFromSleep:
+            [self activateAudioSessionIfNeeded];
+            [[MKAudio sharedAudio] restart];
+            break;
+        default:
+            break;
+    }
+}
+
+- (void) dealloc {
+    [[NSNotificationCenter defaultCenter] removeObserver:self];
 - (void) applicationWillResignActive:(UIApplication *)application {
     if (!_connectionActive) {
 
