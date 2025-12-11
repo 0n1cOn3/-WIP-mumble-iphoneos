@@ -183,6 +183,8 @@ static id MUSharedAudioReplacement(id self, SEL _cmd) {
                                                object:nil];
     
     // Simulate a connection opening by posting the notification
+    // (Note: NSNotificationCenter delivers notifications synchronously, so the
+    // connectionOpened: method will be called before this line returns)
     [[NSNotificationCenter defaultCenter] postNotificationName:MUConnectionOpenedNotification object:nil];
     
     CurrentMockAudio.running = YES;
