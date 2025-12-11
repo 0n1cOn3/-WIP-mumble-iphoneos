@@ -132,8 +132,8 @@ final class MUAudioSessionManager: NSObject {
     @objc(handleRouteChangeWithReason:defaults:)
     func handleRouteChange(reasonValue: UInt, defaults: UserDefaults = .standard) {
         let reason = AVAudioSession.RouteChangeReason(rawValue: reasonValue) ?? .unknown
-        configureSession()
         applyPlaybackPreferences(defaults: defaults)
+        configureSession()
 
         switch reason {
         case .newDeviceAvailable, .oldDeviceUnavailable, .categoryChange, .override, .wakeFromSleep:
