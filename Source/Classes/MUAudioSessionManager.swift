@@ -24,6 +24,12 @@ final class MUAudioSessionManager: NSObject {
     private(set) var vadLowerThreshold: Float = 0.3
     private(set) var vadUpperThreshold: Float = 0.6
     private(set) var recorderSettings: [String: Any] = [:]
+    
+    // Default values for custom quality preset (matches balanced preset)
+    private let defaultCustomBitrate: Int = 40000
+    private let defaultCustomFramesPerPacket: Int = 2
+    private let frameDurationMs: Double = 10.0
+    private let sampleRateThreshold: Int = 24000
 
     private init() {
     }
@@ -154,15 +160,15 @@ final class MUAudioSessionManager: NSObject {
         case .custom:
             // Read custom codec settings from UserDefaults
             let defaults = UserDefaults.standard
-            bitRate = defaults.object(forKey: "AudioQualityBitrate") as? Int ?? 40000
-            let framesPerPacket = defaults.object(forKey: "AudioQualityFrames") as? Int ?? 2
+            bitRate = defaults.object(forKey: "AudioQualityBitrate") as? Int ?? defaultCustomBitrate
+            let framesPerPacket = defaults.object(forKey: "AudioQualityFrames") as? Int ?? defaultCustomFramesPerPacket
             
-            // Calculate packet duration based on frames per packet (each frame is ~10ms)
-            packetDuration = Double(framesPerPacket) * 0.01
+            // Calculate packet duration: each frame represents 10ms of audio
+            packetDuration = Double(framesPerPacket) * (frameDurationMs / 1000.0)
             
-            // Determine sample rate based on bitrate (similar to original logic)
-            // Low bitrates typically use 16kHz, higher bitrates use 48kHz
-            sampleRate = bitRate < 24000 ? 16000 : 48000
+            // Determine sample rate based on bitrate
+            // Lower bitrates (< 24kHz) use 16kHz sampling, higher bitrates use 48kHz
+            sampleRate = bitRate < sampleRateThreshold ? 16000 : 48000
         }
 
         recorderSettings = [
