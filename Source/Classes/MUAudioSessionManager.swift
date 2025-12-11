@@ -19,7 +19,7 @@ final class MUAudioSessionManager: NSObject {
 
     private let session = AVAudioSession.sharedInstance()
     private(set) var transmitMode: MUAudioTransmitMode = .voiceActivity
-    private(set) var codecQuality: MUAudioCodecQualityPreset = .balanced
+    private(set) var codecQualityPreset: MUAudioCodecQualityPreset = .balanced
     private(set) var vadLowerThreshold: Float = 0.3
     private(set) var vadUpperThreshold: Float = 0.6
     private(set) var recorderSettings: [String: Any] = [:]
@@ -124,13 +124,13 @@ final class MUAudioSessionManager: NSObject {
             resolvedPreset = .balanced
         }
 
-        codecQuality = resolvedPreset
+        codecQualityPreset = resolvedPreset
         UserDefaults.standard.set(value(for: resolvedPreset), forKey: "AudioQualityKind")
-        applyCodecSettings(for: resolvedPreset)
+        applyQualityPresetSettings(for: resolvedPreset)
         return value(for: resolvedPreset)
     }
 
-    private func applyCodecSettings(for preset: MUAudioCodecQualityPreset) {
+    private func applyQualityPresetSettings(for preset: MUAudioCodecQualityPreset) {
         let sampleRate: Double
         let bitRate: Int
         let packetDuration: TimeInterval
