@@ -247,6 +247,10 @@
     [captureManager configureFromDefaults];
     [captureManager start];
 
+    MKAudio *audio = [MKAudio sharedAudio];
+    [audio updateAudioSettings:&settings];
+    [audio restart];
+
     // Only activate the audio session if it is not already active
     if (![[AVAudioSession sharedInstance] isActive]) {
         [self activateAudioSession];
@@ -286,6 +290,10 @@
 
 - (void) applicationWillResignActive:(UIApplication *)application {
     if (!_connectionActive) {
+
+        NSLog(@"MumbleApplicationDelegate: Not connected to a server. Stopping MKAudio.");
+        [[MKAudio sharedAudio] stop];
+        [[MUAudioCaptureManager sharedManager] stop];
 
         NSLog(@"MumbleApplicationDelegate: Not connected to a server. Deactivating audio session.");
         [self deactivateAudioSession];
