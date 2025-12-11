@@ -372,12 +372,7 @@ final class MUAudioSessionManager: NSObject {
     private func applyCategoryOptions(_ options: AVAudioSession.CategoryOptions) {
         do {
             // Removed unused assignment to lastCategoryOptions
-            if #available(iOS 10.0, *) {
-                try session.setCategory(.playAndRecord, mode: .voiceChat, options: options)
-            } else {
-                try session.setCategory(.playAndRecord, withOptions: options)
-                try session.setMode(.voiceChat)
-            }
+            try session.setCategory(.playAndRecord, mode: .voiceChat, options: options)
         } catch {
             NSLog("MUAudioSessionManager: Failed to update category options: %@", error.localizedDescription)
         }
