@@ -15,6 +15,7 @@
 #import "MUBackgroundView.h"
 
 #import <MumbleKit/MKAudio.h>
+#import "Mumble-Swift.h"
 #import <MumbleKit/MKVersion.h>
 
 @interface MUApplicationDelegate () <UIApplicationDelegate> {
@@ -154,88 +155,9 @@
 }
 
 - (void) setupAudio {
-    // Set up a good set of default audio settings.
-    NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
-    MKAudioSettings settings;
-
-    if ([[defaults stringForKey:@"AudioTransmitMethod"] isEqualToString:@"vad"])
-        settings.transmitType = MKTransmitTypeVAD;
-    else if ([[defaults stringForKey:@"AudioTransmitMethod"] isEqualToString:@"continuous"])
-        settings.transmitType = MKTransmitTypeContinuous;
-    else if ([[defaults stringForKey:@"AudioTransmitMethod"] isEqualToString:@"ptt"])
-        settings.transmitType = MKTransmitTypeToggle;
-    else
-        settings.transmitType = MKTransmitTypeVAD;
-    
-    settings.vadKind = MKVADKindAmplitude;
-    if ([[defaults stringForKey:@"AudioVADKind"] isEqualToString:@"snr"]) {
-        settings.vadKind = MKVADKindSignalToNoise;
-    } else if ([[defaults stringForKey:@"AudioVADKind"] isEqualToString:@"amplitude"]) {
-        settings.vadKind = MKVADKindAmplitude;
-    }
-    
-    settings.vadMin = [defaults floatForKey:@"AudioVADBelow"];
-    settings.vadMax = [defaults floatForKey:@"AudioVADAbove"];
-    
-    NSString *quality = [defaults stringForKey:@"AudioQualityKind"];
-    if ([quality isEqualToString:@"low"]) {
-        // Will fall back to CELT if the
-        // server requires it for inter-op.
-        settings.codec = MKCodecFormatOpus;
-        settings.quality = 16000;
-        settings.audioPerPacket = 6;
-    } else if ([quality isEqualToString:@"balanced"]) {
-        // Will fall back to CELT if the 
-        // server requires it for inter-op.
-        settings.codec = MKCodecFormatOpus;
-        settings.quality = 40000;
-        settings.audioPerPacket = 2;
-    } else if ([quality isEqualToString:@"high"] || [quality isEqualToString:@"opus"]) {
-        // Will fall back to CELT if the 
-        // server requires it for inter-op.
-        settings.codec = MKCodecFormatOpus;
-        settings.quality = 72000;
-        settings.audioPerPacket = 1;
-    } else {
-        settings.codec = MKCodecFormatCELT;
-        if ([[defaults stringForKey:@"AudioCodec"] isEqualToString:@"opus"])
-            settings.codec = MKCodecFormatOpus;
-        if ([[defaults stringForKey:@"AudioCodec"] isEqualToString:@"celt"])
-            settings.codec = MKCodecFormatCELT;
-        if ([[defaults stringForKey:@"AudioCodec"] isEqualToString:@"speex"])
-            settings.codec = MKCodecFormatSpeex;
-        settings.quality = (int) [defaults integerForKey:@"AudioQualityBitrate"];
-        settings.audioPerPacket = (int) [defaults integerForKey:@"AudioQualityFrames"];
-    }
-    
-    settings.noiseSuppression = -42; /* -42 dB */
-    settings.amplification = 20.0f;
-    settings.jitterBufferSize = 0; /* 10 ms */
-    settings.volume = [defaults floatForKey:@"AudioOutputVolume"];
-    settings.outputDelay = 0; /* 10 ms */
-    settings.micBoost = [defaults floatForKey:@"AudioMicBoost"];
-    settings.enablePreprocessor = [defaults boolForKey:@"AudioPreprocessor"];
-    if (settings.enablePreprocessor) {
-        settings.enableEchoCancellation = [defaults boolForKey:@"AudioEchoCancel"];
-    } else {
-        settings.enableEchoCancellation = NO;
-    }
-
-    settings.enableSideTone = [defaults boolForKey:@"AudioSidetone"];
-    settings.sidetoneVolume = [defaults floatForKey:@"AudioSidetoneVolume"];
-    
-    if ([defaults boolForKey:@"AudioSpeakerPhoneMode"]) {
-        settings.preferReceiverOverSpeaker = NO;
-    } else {
-        settings.preferReceiverOverSpeaker = YES;
-    }
-    
-    settings.opusForceCELTMode = [defaults boolForKey:@"AudioOpusCodecForceCELTMode"];
-    settings.audioMixerDebug = [defaults boolForKey:@"AudioMixerDebug"];
-    
-    MKAudio *audio = [MKAudio sharedAudio];
-    [audio updateAudioSettings:&settings];
-    [audio restart];
+    [[MUAudioSessionManager shared] configureSession];
+    [[MUAudioSessionManager shared] applySavedPreferences];
+    [[MKAudio sharedAudio] restart];
 }
 
 // Reload application preferences...

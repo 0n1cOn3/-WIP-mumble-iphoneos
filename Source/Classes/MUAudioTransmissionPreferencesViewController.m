@@ -9,6 +9,7 @@
 #import "MUColor.h"
 #import "MUImage.h"
 #import "MUBackgroundView.h"
+#import "Mumble-Swift.h"
 
 @interface MUAudioTransmissionPreferencesViewController () {
 }
@@ -221,12 +222,17 @@
 
         [self.tableView deselectRowAtIndexPath:indexPath animated:YES];
         
+        NSString *selected = nil;
         if (indexPath.row == 0) {
-            [[NSUserDefaults standardUserDefaults] setObject:@"vad" forKey:@"AudioTransmitMethod"];
+            selected = @"vad";
         } else if (indexPath.row == 1) {
-            [[NSUserDefaults standardUserDefaults] setObject:@"ptt" forKey:@"AudioTransmitMethod"];
+            selected = @"ptt";
         } else if (indexPath.row == 2) {
-            [[NSUserDefaults standardUserDefaults] setObject:@"continuous" forKey:@"AudioTransmitMethod"];
+            selected = @"continuous";
+        }
+
+        if (selected != nil) {
+            [[MUAudioSessionManager shared] updateTransmitMethodWithString:selected];
         }
 
         [self.tableView reloadSectionIndexTitles];
