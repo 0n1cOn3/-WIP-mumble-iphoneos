@@ -13,6 +13,7 @@
 #import "MURemoteControlServer.h"
 #import "MUImage.h"
 #import "MUBackgroundView.h"
+#import "MUAudioCaptureManager.h"
 
 #import <AVFoundation/AVFoundation.h>
 #import <MumbleKit/MKAudio.h>
@@ -242,9 +243,9 @@
     settings.opusForceCELTMode = [defaults boolForKey:@"AudioOpusCodecForceCELTMode"];
     settings.audioMixerDebug = [defaults boolForKey:@"AudioMixerDebug"];
 
-    MKAudio *audio = [MKAudio sharedAudio];
-    [audio updateAudioSettings:&settings];
-    [audio restart];
+    MUAudioCaptureManager *captureManager = [MUAudioCaptureManager sharedManager];
+    [captureManager configureFromDefaults];
+    [captureManager start];
 
     // Only activate the audio session if it is not already active
     if (![[AVAudioSession sharedInstance] isActive]) {
@@ -285,6 +286,7 @@
 
 - (void) applicationWillResignActive:(UIApplication *)application {
     if (!_connectionActive) {
+
         NSLog(@"MumbleApplicationDelegate: Not connected to a server. Deactivating audio session.");
         [self deactivateAudioSession];
 
@@ -296,10 +298,22 @@
 }
 
 - (void) applicationDidBecomeActive:(UIApplication *)application {
+    // It is possible that we will become active after a phone call has ended.
+    // In the case of phone calls, MKAudio will automatically stop itself, to
+    // allow the phone call to go through. However, once we're back inside the
+    // application, we have to start ourselves again.
+    //
+    // For regular backgrounding, we usually don't turn off the audio system, and
+    // we won't have to start it again.
+    if (![[MKAudio sharedAudio] isRunning]) {
+        NSLog(@"MumbleApplicationDelegate: MKAudio not running. Starting it.");
+        [[MKAudio sharedAudio] start];
+        [[MUAudioCaptureManager sharedManager] start];
+        
     if (!_connectionActive && ![[AVAudioSession sharedInstance] isOtherAudioPlaying]) {
         NSLog(@"MumbleApplicationDelegate: Reactivating audio session after foregrounding.");
         [self activateAudioSession];
-
+      
 #if ENABLE_REMOTE_CONTROL
         // Re-start the remote control server.
         [[MURemoteControlServer sharedRemoteControlServer] stop];
