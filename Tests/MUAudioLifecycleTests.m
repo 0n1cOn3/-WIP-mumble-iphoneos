@@ -190,7 +190,9 @@ static id MUSharedAudioReplacement(id self, SEL _cmd) {
     XCTAssertEqual(CurrentMockAudio.stopCallCount, 0);
     
     // Clean up the observer to avoid side effects
-    [[NSNotificationCenter defaultCenter] removeObserver:delegate];
+    [[NSNotificationCenter defaultCenter] removeObserver:delegate 
+                                                    name:MUConnectionOpenedNotification 
+                                                  object:nil];
 }
 
 - (void)testApplicationRestartsAudioAfterInterruption {
