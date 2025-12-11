@@ -1,5 +1,6 @@
 import Foundation
 import AVFoundation
+import MumbleKit
 
 /// Defines the mode used for transmitting audio in a Mumble session.
 ///
@@ -48,6 +49,9 @@ final class MUAudioSessionManager: NSObject {
     static let shared = MUAudioSessionManager()
 
     private let session = AVAudioSession.sharedInstance()
+    private weak var mumbleKitAudio: MKAudio?
+    private var prefersSpeaker: Bool = true
+    private var lastCategoryOptions: AVAudioSession.CategoryOptions = []
     
     /// The current audio transmission mode
     private(set) var transmitMode: MUAudioTransmitMode = .voiceActivity
@@ -84,14 +88,58 @@ final class MUAudioSessionManager: NSObject {
     /// and when returning from background.
     func configureSession() {
         do {
+            var options: AVAudioSession.CategoryOptions = session.categoryOptions
+            options.insert(.allowBluetooth)
             if #available(iOS 12.0, *) {
-                try session.setCategory(.playAndRecord, mode: .voiceChat, options: [.allowBluetooth, .allowBluetoothA2DP, .defaultToSpeaker])
-            } else {
-                try session.setCategory(.playAndRecord, mode: .voiceChat, options: [.allowBluetooth, .defaultToSpeaker])
+                options.insert(.allowBluetoothA2DP)
             }
+            if prefersSpeaker {
+                options.insert(.defaultToSpeaker)
+            } else {
+                options.remove(.defaultToSpeaker)
+            }
+            applyCategoryOptions(options)
             try session.setActive(true, options: [])
         } catch {
             NSLog("MUAudioSessionManager: Failed to configure audio session: %@", error.localizedDescription)
+        }
+    }
+
+    /// Binds the session manager to the active MumbleKit audio instance so routing
+    /// and playback adjustments can restart the pipeline when needed.
+    ///
+    /// - Parameters:
+    ///   - audio: The `MKAudio` instance backing the voice connection.
+    ///   - defaults: Defaults containing user routing preferences.
+    @objc(bindToMumbleKitAudio:defaults:)
+    func bind(to audio: MKAudio, defaults: UserDefaults = .standard) {
+        mumbleKitAudio = audio
+        applyPlaybackPreferences(defaults: defaults)
+    }
+
+    /// Re-applies routing preferences and restarts the audio pipeline after
+    /// configuration or foregrounding.
+    @objc func refreshPlaybackChain() {
+        applyPlaybackRoute(preferSpeaker: prefersSpeaker)
+        restartAudioSubsystemIfNeeded()
+    }
+
+    /// Handles AVAudioSession route change notifications in a Swift-friendly way
+    /// while keeping Objective-C callers compatible.
+    /// - Parameters:
+    ///   - reasonValue: Raw value of `AVAudioSession.RouteChangeReason`.
+    ///   - defaults: Defaults containing user routing preferences.
+    @objc(handleRouteChangeWithReason:defaults:)
+    func handleRouteChange(reasonValue: UInt, defaults: UserDefaults = .standard) {
+        let reason = AVAudioSession.RouteChangeReason(rawValue: reasonValue) ?? .unknown
+        configureSession()
+        applyPlaybackPreferences(defaults: defaults)
+
+        switch reason {
+        case .newDeviceAvailable, .oldDeviceUnavailable, .categoryChange, .override, .wakeFromSleep:
+            restartAudioSubsystemIfNeeded()
+        default:
+            break
         }
     }
 
@@ -124,6 +172,15 @@ final class MUAudioSessionManager: NSObject {
         }
         _ = updateVADThresholds(lower: lower, upper: upper)
         _ = updateCodecQualityPreset(defaults.string(forKey: "AudioQualityKind"))
+        applyPlaybackPreferences(defaults: defaults)
+    }
+
+    /// Applies playback and routing preferences that affect output.
+    /// - Parameter defaults: Defaults containing routing preferences.
+    @objc(applyPlaybackPreferencesWithDefaults:)
+    func applyPlaybackPreferences(defaults: UserDefaults = .standard) {
+        prefersSpeaker = defaults.bool(forKey: "AudioSpeakerPhoneMode")
+        applyPlaybackRoute(preferSpeaker: prefersSpeaker)
     }
 
     /// Updates the audio transmission mode.
@@ -284,6 +341,45 @@ final class MUAudioSessionManager: NSObject {
             try session.setPreferredIOBufferDuration(packetDuration)
         } catch {
             NSLog("MUAudioSessionManager: Failed to apply codec settings: %@", error.localizedDescription)
+        }
+    }
+
+    private func applyPlaybackRoute(preferSpeaker: Bool) {
+        do {
+            if preferSpeaker {
+                try session.overrideOutputAudioPort(.speaker)
+            } else {
+                try session.overrideOutputAudioPort(.none)
+            }
+        } catch {
+            NSLog("MUAudioSessionManager: Failed to update playback route: %@", error.localizedDescription)
+        }
+    }
+
+    private func restartAudioSubsystemIfNeeded() {
+        if let audio = mumbleKitAudio {
+            if audio.isRunning {
+                audio.restart()
+            } else {
+                audio.start()
+            }
+        }
+
+        let captureManager = MUAudioCaptureManager.sharedManager()
+        captureManager?.start()
+    }
+
+    private func applyCategoryOptions(_ options: AVAudioSession.CategoryOptions) {
+        do {
+            lastCategoryOptions = options
+            if #available(iOS 10.0, *) {
+                try session.setCategory(.playAndRecord, mode: .voiceChat, options: options)
+            } else {
+                try session.setCategory(.playAndRecord, withOptions: options)
+                try session.setMode(.voiceChat)
+            }
+        } catch {
+            NSLog("MUAudioSessionManager: Failed to update category options: %@", error.localizedDescription)
         }
     }
 
