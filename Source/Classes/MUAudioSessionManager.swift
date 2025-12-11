@@ -27,6 +27,7 @@ import AVFoundation
     case balanced
     /// High quality preset - 48 kHz sample rate, 72 kbps bit rate, best audio quality
     case high
+    case custom
 }
 
 /// Manages the audio session configuration for Mumble voice communication.
@@ -62,6 +63,12 @@ final class MUAudioSessionManager: NSObject {
     
     /// Audio recorder settings dictionary for AVAudioRecorder
     private(set) var recorderSettings: [String: Any] = [:]
+    
+    // Default values for custom quality preset (matches balanced preset)
+    private let defaultCustomBitrate: Int = 40000
+    private let defaultCustomFramesPerPacket: Int = 2
+    private let frameDurationMs: Double = 10.0
+    private let sampleRateThreshold: Int = 24000
 
     private init() {
     }
@@ -216,8 +223,10 @@ final class MUAudioSessionManager: NSObject {
         switch preset?.lowercased() {
         case "low":
             resolvedPreset = .low
-        case "high":
+        case "high", "opus":
             resolvedPreset = .high
+        case "custom":
+            resolvedPreset = .custom
         default:
             resolvedPreset = .balanced
         }
@@ -246,6 +255,18 @@ final class MUAudioSessionManager: NSObject {
             sampleRate = 48000
             bitRate = 40000
             packetDuration = 0.02
+        case .custom:
+            // Read custom codec settings from UserDefaults
+            let defaults = UserDefaults.standard
+            bitRate = defaults.object(forKey: "AudioQualityBitrate") as? Int ?? defaultCustomBitrate
+            let framesPerPacket = defaults.object(forKey: "AudioQualityFrames") as? Int ?? defaultCustomFramesPerPacket
+            
+            // Calculate packet duration: each frame represents 10ms of audio
+            packetDuration = Double(framesPerPacket) * (frameDurationMs / 1000.0)
+            
+            // Determine sample rate based on bitrate
+            // Lower bitrates (< 24 kbit/s) use 16kHz sampling, higher bitrates use 48kHz
+            sampleRate = bitRate < sampleRateThreshold ? 16000 : 48000
         }
 
         recorderSettings = [
@@ -285,6 +306,8 @@ final class MUAudioSessionManager: NSObject {
             return "balanced"
         case .high:
             return "high"
+        case .custom:
+            return "custom"
         }
     }
 
