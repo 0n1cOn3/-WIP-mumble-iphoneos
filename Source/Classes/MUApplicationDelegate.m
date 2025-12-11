@@ -361,6 +361,7 @@
 
 - (void) dealloc {
     [[NSNotificationCenter defaultCenter] removeObserver:self];
+}
 - (void) applicationWillResignActive:(UIApplication *)application {
     if (!_connectionActive) {
 
