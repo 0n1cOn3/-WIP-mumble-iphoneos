@@ -349,7 +349,7 @@
 
     if (@available(iOS 10.0, *)) {
         if (![session setCategory:AVAudioSessionCategoryPlayAndRecord mode:mode options:options error:&error]) {
-            NSLog(@"MUApplicationDelegate: Failed to set audio session category/mode: %@", error);
+            NSLog(@"MUApplicationDelegate: Failed to set audio session category '%@', mode '%@', options '%lu': %@", AVAudioSessionCategoryPlayAndRecord, mode, (unsigned long)options, error);
         }
     } else {
         if (![session setCategory:AVAudioSessionCategoryPlayAndRecord withOptions:options error:&error]) {
