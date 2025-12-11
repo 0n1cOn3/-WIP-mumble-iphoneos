@@ -44,7 +44,19 @@ final class MUAudioSessionManager: NSObject {
         let defaults = UserDefaults.standard
         _ = updateTransmitMethod(withString: defaults.string(forKey: "AudioTransmitMethod"))
         _ = updateVADKind(withString: defaults.string(forKey: "AudioVADKind"))
-        _ = updateVADThresholds(lower: defaults.float(forKey: "AudioVADBelow"), upper: defaults.float(forKey: "AudioVADAbove"))
+        let lower: Float
+        if let _ = defaults.object(forKey: "AudioVADBelow") {
+            lower = defaults.float(forKey: "AudioVADBelow")
+        } else {
+            lower = vadLowerThreshold
+        }
+        let upper: Float
+        if let _ = defaults.object(forKey: "AudioVADAbove") {
+            upper = defaults.float(forKey: "AudioVADAbove")
+        } else {
+            upper = vadUpperThreshold
+        }
+        _ = updateVADThresholds(lower: lower, upper: upper)
         _ = updateCodecQualityPreset(defaults.string(forKey: "AudioQualityKind"))
     }
 
