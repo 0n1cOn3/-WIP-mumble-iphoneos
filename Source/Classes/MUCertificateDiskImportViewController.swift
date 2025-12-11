@@ -129,7 +129,7 @@ class MUCertificateDiskImportViewController: UITableViewController, UITextFieldD
                     showAlertDialog(title: NSLocalizedString("Import Error", comment: "Error title for certificate import failure"), msg: NSLocalizedString("A certificate with the same name already exist.", comment: "Error message when certificate with same name exists"))
                 } else {
                     let msg = String(format: NSLocalizedString("Mumble was unable to import the certificate.\nError Code: %li", comment: "Error message with error code for certificate import failure"), addErr)
-                    showAlertDialog(title: "Import Error", msg: msg)
+                    showAlertDialog(title: NSLocalizedString("Import Error", comment: "Error title for certificate import failure"), msg: msg)
                 }
             }
             tableView.deselectRow(at: attemptIndexPath!, animated: true)
@@ -137,7 +137,7 @@ class MUCertificateDiskImportViewController: UITableViewController, UITextFieldD
             showPasswordDialog()
             tableView.deselectRow(at: attemptIndexPath!, animated: true)
         } else if err == errSecDecode {
-            showAlertDialog(title: NSLocalizedString("Import Error", comment: "Error title for certificate import failure"), msg: "Unable to decode PKCS12 file")
+            showAlertDialog(title: NSLocalizedString("Import Error", comment: "Error title for certificate import failure"), msg: NSLocalizedString("Unable to decode PKCS12 file", comment: "Error message when PKCS12 file cannot be decoded"))
             tableView.deselectRow(at: attemptIndexPath!, animated: true)
         } else {
             showAlertDialog(title: NSLocalizedString("Import Error", comment: "Error title for certificate import failure"), msg: NSLocalizedString("Mumble was unable to import the certificate.", comment: "Error message when certificate import fails"))
