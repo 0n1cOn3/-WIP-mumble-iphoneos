@@ -205,9 +205,9 @@ final class MUAudioSessionManager: NSObject {
     /// - Returns: The normalized string value of the applied preset
     ///
     /// Each preset configures different audio parameters:
-    /// - Low: 16 kHz, 16 kbps, 60ms packets
-    /// - Balanced: 48 kHz, 40 kbps, 20ms packets (default)
-    /// - High: 48 kHz, 72 kbps, 10ms packets
+    /// - Low: 16 kHz sample rate, 16 kbps bit rate, 60ms buffer duration
+    /// - Balanced: 48 kHz sample rate, 40 kbps bit rate, 20ms buffer duration (default)
+    /// - High: 48 kHz sample rate, 72 kbps bit rate, 10ms buffer duration
     ///
     /// The selected preset is persisted to UserDefaults under the key "AudioQualityKind".
     @discardableResult
